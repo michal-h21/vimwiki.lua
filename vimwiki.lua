@@ -28,6 +28,7 @@ add_inline("strong", "%*(.-)%*")
 add_inline("italic", "_(.-)_")
 add_inline("strikeout", "~~(.-)~~")
 add_inline("subscript", ",,(.-),,")
+add_inline("superscript", "%^(.-)%^")
 
 add_inline("tag", ":(.+):", function(tags)
   -- tags are in the form of :tag1:tag2:
