@@ -31,6 +31,7 @@ describe("basic inline parsing", function()
     local tag = matches[2]
     -- there are four tags
     assert.same(4, #tag.value)
+    assert.same(tag.value[3], "is")
   end)
   it("should support links", function()
     local matches = reader:parse_inlines("hello [[world]], this [[link|has a title]]")
