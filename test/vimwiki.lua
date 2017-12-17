@@ -38,5 +38,8 @@ describe("basic inline parsing", function()
     local simple = matches[2]
     local titled = matches[4]
     assert.same(simple.name, "link")
+    assert.same(simple.value, "world")
+    assert.same(titled.value, "link")
+    assert.same(titled.title, "has a title")
   end)
 end)
