@@ -40,7 +40,7 @@ add_inline("tag", ":(.+):", function(tags)
   return {name = "tag", value = t}
 end)
 
-add_inline("link", "[[(.-)]]", function(text)
+add_inline("link", "%[%[(.-)%]%]", function(text)
   local link, title = text:match("(.-)|?(.*)")
   return {name = "link", value = link, title = title}
 end)
