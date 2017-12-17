@@ -25,11 +25,18 @@ describe("basic inline parsing", function()
     local matches = reader:parse_inlines("hello,,subscript,,, hello^superscript^")
     assert.same(#matches, 4)
   end)
-  it("it should detect tags", function()
+  it("should detect tags", function()
     local matches = reader:parse_inlines("some text :and:it:is:tagged: but only this")
     assert.same(#matches, 3)
     local tag = matches[2]
     -- there are four tags
     assert.same(4, #tag.value)
+  end)
+  it("should support links", function()
+    local matches = reader:parse_inlines("hello [[world]], this [[link|has a title]]")
+    assert.same(#matches,4)
+    local simple = matches[2]
+    local titled = matches[4]
+    assert.same(simple.name, "link")
   end)
 end)
