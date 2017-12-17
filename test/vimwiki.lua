@@ -43,4 +43,13 @@ describe("basic inline parsing", function()
     assert.same(titled.value, "link")
     assert.same(titled.title, "has a title")
   end)
+  it("should detect urls in links", function()
+    local matches = reader:parse_inlines("hello [[http://sample.com]], [[file:~/sample.tex|title]]")
+    assert.same(#matches, 4)
+    local url = matches[2]
+    local filelink = matches[4]
+    assert.same(url.name, "url_link")
+    assert.same(filelink.name, "file_link")
+    assert.same(filelink.value,"file:~/sample.tex")
+  end)
 end)
