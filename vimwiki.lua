@@ -114,10 +114,10 @@ function wikireader:inline_ast(text, matches)
   if last - nextmatch > 0 then
     add_text(string.sub(text, nextmatch, last))
   end
-  -- print(text)
-  -- for _,v in ipairs(ast) do
-    -- print("ast", v.name, v.value)
-  -- end
+  print(text)
+  for _,v in ipairs(ast) do
+    print("ast", v.name, v.value)
+  end
   return ast
 end
 
