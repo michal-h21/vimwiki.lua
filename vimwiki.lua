@@ -42,6 +42,7 @@ end)
 
 add_inline("link", "%[%[(.-)%]%]", function(text)
   local link, title = text:match("(.-)|?(.*)")
+  print("link", link, title)
   return {name = "link", value = link, title = title}
 end)
 
