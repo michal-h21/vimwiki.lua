@@ -40,9 +40,22 @@ add_inline("tag", ":(.+):", function(tags)
   return {name = "tag", value = t}
 end)
 
+local url_schemes = {
+  http = "url_link",
+  https = "url_link",
+  ftp = "url_link",
+  mailto = "url_link",
+  file = "file_link",
+  ["local"] = "file_link"
+}
 add_inline("link", "%[%[(.-)%]%]", function(text)
   local link, title = text:match("([^|]+)|?(.*)")
-  return {name = "link", value = link, title = title}
+  local name = "link"
+  local scheme = link:match("^([^:]+):")
+  if scheme then
+    name = url_schemes[scheme] or name
+  end
+  return {name = name, value = link, title = title}
 end)
 
 wikireader.new = function()
