@@ -48,15 +48,26 @@ local url_schemes = {
   file = "file_link",
   ["local"] = "file_link"
 }
+
 add_inline("link", "%[%[(.-)%]%]", function(text)
   local link, title = text:match("([^|]+)|?(.*)")
   local name = "link"
+  -- differentiate between inter-wiki links and links to files or urls
   local scheme = link:match("^([^:]+):")
   if scheme then
     name = url_schemes[scheme] or name
   end
-  return {name = name, value = link, title = title}
+  -- title may contain transclusion link, this is used for image thumbnails
+  local thumbnail = title:match("{{(.-)}}")
+  if thumbnail then title = nil end
+  return {name = name, value = link, title = title, thumbnail = thumbnail}
 end)
+
+add_inline("transclusion", "{{(.-)}}", function(text)
+  local link, title, style = text:match("([^|]+)|?([^|]*)|?(.*)")
+  return {name = "transclusion", value = link, title = title,style = style}
+end)
+
 
 wikireader.new = function()
   local t = setmetatable({}, wikireader)
