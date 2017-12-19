@@ -1,6 +1,6 @@
 local vimwiki = require "vimwiki"
+local reader = vimwiki.reader.new()
 describe("basic inline parsing", function()
-  local reader = vimwiki.reader.new()
   it("should detect strong text", function()
     local matches = reader:parse_inlines("příliš *start* hello _world_ more ~~text~~ end")
     assert.same(#matches, 7)
@@ -66,5 +66,31 @@ describe("basic inline parsing", function()
     local sample = matches[1]
     assert.truthy(sample.thumbnail)
     assert.same(sample.title, nil)
+  end)
+end)
+
+describe("Block parsing should work", function()
+  local test = [[
+= hello world =
+
+- item
+- another item
+
+{{{
+verbatim block
+just a few 
+  lines
+}}}
+
+paragraph
+still paragraph
+]]
+
+  it("should parse a string", function()
+    reader:parse_string(test)
+    assert.truthy(#reader.blocks > 0)
+    for _,v in ipairs(reader.blocks) do
+      print(v.name, v.value)
+    end
   end)
 end)

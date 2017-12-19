@@ -71,14 +71,30 @@ end)
 
 wikireader.new = function()
   local t = setmetatable({}, wikireader)
-  wikireader.tree = {}
-  wikireader.lines = {}
+  -- wikireader.tree = {}
+  -- wikireader.lines = {}
   -- initial state machine state
-  wikireader.state = "line"
+  -- wikireader.state = "line"
+  t.block_patterns =  {}
+  t:load_blocks()
   -- t.__index = t
   return t
 end
 
+function wikireader:add_block(name, pattern, fn)
+  local block_patterns = self.block_patterns
+  local t = {name = name, pattern = pattern, fn = fn}
+  table.insert(block_patterns, t)
+  block_patterns[name] = t
+end
+
+function wikireader:load_blocks()
+  self:add_block("header","([%s]*)(=+)%s*(.-)=+", wikireader.header)
+  self:add_block("enumerated_list", "^(%s*)([0-9a-z]+)[%.%)] (.+)", wikireader.enumerate)
+  -- hash list is a special case of an enumerated list
+  self:add_block("hash_list", "^(%s*)(%#) (.+)", wikireader.enumerate)
+  self:add_block("bullet_list", "^(%s*)([%-%*]) (.+)", wikireader.bulleted)
+end
 
 
 --- Parse string for inline elements
@@ -122,6 +138,7 @@ function wikireader:inline_ast(text, matches)
       nextmatch = stop + 1
     end
   end
+  -- parse remaining text at the end
   if last - nextmatch > 0 then
     add_text(string.sub(text, nextmatch, last))
   end
@@ -147,8 +164,109 @@ function wikireader:match_inline(text, parser, matches, pos)
   return matches
 end
 
+-- parse lines from a string
+local function parse_lines(str)
+  return coroutine.wrap(function()
+    for line in str:gmatch("([^\r^\n]*)") do
+      coroutine.yield(line)
+    end
+  end)
+end
+
+function wikireader:parse_string(str)
+  local iterator = parse_lines(str)
+  return self:parse(iterator)
+end
+
+-- parse a file or standard input
+local function io_lines(file)
+  return coroutine.wrap(function()
+    for line in io.lines(file) do
+      coroutine.yield(line)
+    end
+  end)
+end
+
+function wikireader:parse_file(file)
+  local iterator = io_lines(file)
+  return self:parse(iterator)
+end
+
 -- local reader = wikireader.new()
 
+function wikireader:read_line()
+  local iterator = self.iterator
+  if iterator then
+    return iterator()
+  end
+end
+
+function wikireader:process_line(line)
+  local blocks = self.blocks
+  local block_patterns = self.block_patterns
+  local matched = false
+  if not line:match("{{{") then
+    for _, block_pattern in ipairs(block_patterns) do
+      local pattern = block_pattern.pattern
+      local match = {string.match(line, pattern)}
+      -- if string.find(line, pattern)  then
+      if #match > 0 then
+        matched = true
+        blocks[#blocks+1] = block_pattern.fn(self, table.unpack(match))
+      end
+    end
+    if not matched then
+      blocks[#blocks+1] = {name = "line", value = line}
+    end
+  else
+    self.verbatim = true
+    self.stopverbatim = "}}}"
+  end
+end
+
+function wikireader:header(space, level, text)
+  print("header je tady", space, level, text)
+  local centered = string.len(space) > 3 and true or false
+  return {name = "header", centered = centered, level = string.len(level), value = text}
+
+end
+
+function wikireader:enumerated(indent, counter, text)
+  local indent = string.len(indent)
+  return {name = "enumerate", indent = indent, counter = counter, value = text}
+end
+
+function wikireader:bulleted(indent, bullet, text)
+  local indent = string.len(indent)
+  print("bulleted list", indent, bullet, text)
+  return {name = "bulleted", indent = indent, bullet = bullet, value = text}
+end
+
+function wikireader:process_verbatim(line, verbatim_block)
+  local stopverbatim = self.stopverbatim
+  local verbatim_block = verbatim_block or {}
+  if not line:match(stopverbatim) then
+    table.insert(verbatim_block, line)
+    line = self:read_line()
+    return self:process_verbatim(line, verbatim_block)
+  end
+  self.verbatim = false
+  table.insert(self.blocks, {name = "verbatim", value = table.concat(verbatim_block, "\n")})
+end
+
+function wikireader:parse(iterator)
+  self.blocks = {}
+  self.iterator = iterator
+  local line = self:read_line()
+  while line do
+    if not self.verbatim then
+      self:process_line(line)
+    else
+      self:process_verbatim(line)
+    end
+    line = self:read_line()
+  end
+end
 
 local m = {}
 m.reader = wikireader
