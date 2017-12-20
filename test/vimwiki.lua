@@ -75,6 +75,7 @@ describe("Block parsing should work", function()
 
 - item
 - another item
+  - sub item
 
 {{{
 verbatim block
