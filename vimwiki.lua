@@ -94,6 +94,7 @@ function wikireader:load_blocks()
   -- hash list is a special case of an enumerated list
   self:add_block("hash_list", "^(%s*)(%#) (.+)", wikireader.enumerate)
   self:add_block("bullet_list", "^(%s*)([%-%*]) (.+)", wikireader.bulleted)
+  self:add_block("verbatim", "^%s*{{{(.*)", wikireader.verbatim)
 end
 
 
@@ -205,22 +206,17 @@ function wikireader:process_line(line)
   local blocks = self.blocks
   local block_patterns = self.block_patterns
   local matched = false
-  if not line:match("{{{") then
-    for _, block_pattern in ipairs(block_patterns) do
-      local pattern = block_pattern.pattern
-      local match = {string.match(line, pattern)}
-      -- if string.find(line, pattern)  then
-      if #match > 0 then
-        matched = true
-        blocks[#blocks+1] = block_pattern.fn(self, table.unpack(match))
-      end
+  for _, block_pattern in ipairs(block_patterns) do
+    local pattern = block_pattern.pattern
+    local match = {string.match(line, pattern)}
+    -- if string.find(line, pattern)  then
+    if #match > 0 then
+      matched = true
+      blocks[#blocks+1] = block_pattern.fn(self, table.unpack(match))
     end
-    if not matched then
-      blocks[#blocks+1] = {name = "line", value = line}
-    end
-  else
-    self.verbatim = true
-    self.stopverbatim = "}}}"
+  end
+  if not matched then
+    blocks[#blocks+1] = {name = "line", value = line}
   end
 end
 
@@ -242,6 +238,14 @@ function wikireader:bulleted(indent, bullet, text)
   return {name = "bulleted", indent = indent, bullet = bullet, value = text}
 end
 
+function wikireader:verbatim(style)
+  self.stopverbatim = "}}}"
+  local next_line = self:read_line()
+  local content = self:process_verbatim(next_line)
+  self.verbatim = false
+  return {name = "verbatim", value = content, style = style}
+end
+
 function wikireader:process_verbatim(line, verbatim_block)
   local stopverbatim = self.stopverbatim
   local verbatim_block = verbatim_block or {}
@@ -250,8 +254,9 @@ function wikireader:process_verbatim(line, verbatim_block)
     line = self:read_line()
     return self:process_verbatim(line, verbatim_block)
   end
-  self.verbatim = false
-  table.insert(self.blocks, {name = "verbatim", value = table.concat(verbatim_block, "\n")})
+  return table.concat(verbatim_block, "\n")
+  -- self.verbatim = false
+  -- table.insert(self.blocks, {name = "verbatim", value = table.concat(verbatim_block, "\n")})
 end
 
 function wikireader:parse(iterator)
@@ -259,11 +264,7 @@ function wikireader:parse(iterator)
   self.iterator = iterator
   local line = self:read_line()
   while line do
-    if not self.verbatim then
-      self:process_line(line)
-    else
-      self:process_verbatim(line)
-    end
+    self:process_line(line)
     line = self:read_line()
   end
 end
