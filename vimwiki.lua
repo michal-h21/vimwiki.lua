@@ -95,6 +95,8 @@ function wikireader:load_blocks()
   self:add_block("hash_list", "^(%s*)(%#) (.+)", wikireader.enumerate)
   self:add_block("bullet_list", "^(%s*)([%-%*]) (.+)", wikireader.bulleted)
   self:add_block("verbatim", "^%s*{{{(.*)", wikireader.verbatim)
+  self:add_block("definition_term", "^%s*(.+)::%s*(.*)", wikireader.definition_term)
+  self:add_block("definition", "^%s*::(.+)", wikireader.definition)
 end
 
 
@@ -257,6 +259,14 @@ function wikireader:process_verbatim(line, verbatim_block)
   return table.concat(verbatim_block, "\n")
   -- self.verbatim = false
   -- table.insert(self.blocks, {name = "verbatim", value = table.concat(verbatim_block, "\n")})
+end
+
+function wikireader:definition_term(term, definition)
+  return {name = "definition_term", term = term, value = definition}
+end
+
+function wikireader:definition(definition)
+  return {name = "definition", value = definition}
 end
 
 function wikireader:parse(iterator)

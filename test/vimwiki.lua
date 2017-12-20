@@ -85,6 +85,10 @@ just a few
 
 paragraph
 still paragraph
+
+term:: definition
+another term::
+:: longer definition
 ]]
 
   it("should parse a string", function()
