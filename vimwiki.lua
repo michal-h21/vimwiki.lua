@@ -29,6 +29,7 @@ add_inline("italic", "_(.-)_")
 add_inline("strikeout", "~~(.-)~~")
 add_inline("subscript", ",,(.-),,")
 add_inline("superscript", "%^(.-)%^")
+add_inline("latex_inline", "%$(.-)%$")
 
 add_inline("tag", ":(.+):", function(tags)
   -- tags are in the form of :tag1:tag2:
@@ -97,6 +98,13 @@ function wikireader:load_blocks()
   self:add_block("verbatim", "^%s*{{{(.*)", wikireader.verbatim)
   self:add_block("definition_term", "^%s*(.+)::%s*(.*)", wikireader.definition_term)
   self:add_block("definition", "^%s*::(.+)", wikireader.definition)
+  self:add_block("table_row", "^(%s*)|(.+)|%s*$", wikireader.table_row)
+  self:add_block("latex", "^%s*{{$(.*)", wikireader.latex_block)
+  self:add_block("comment", "^%s*%%%%(.*)", wikireader.comment)
+  self:add_block("placeholder", "^%s*%%([^%s]+)%s*(.*)", wikireader.placeholder)
+  self:add_block("hline", "^%s*%-%-%-%-", wikireader.hline)
+  self:add_block("indented_line", "^(%s+)(.+)", wikireader.indented_line)
+  self:add_block("blank_line", "^%s*$", wikireader.blank_line)
 end
 
 
@@ -267,6 +275,51 @@ end
 
 function wikireader:definition(definition)
   return {name = "definition", value = definition}
+end
+
+function wikireader:table_row(indent,row)
+  local cells = {}
+  -- detect if the row is horizontal lines
+  local letters = false
+  for cell in row:gmatch("([^|]+)") do
+    cells[#cells+1] = cell
+    letters = letters or cell:match("^[%-%s]+$")
+  end
+  if letters then
+    return {name = "table_hline", indent = indent}
+  else
+    return {name = "table_row", indent = indent, cells = cells}
+  end
+end
+
+function wikireader:latex_block(environment)
+  local environment = environment:match("%%(.+)%%")
+  self.stopverbatim = "}}%$"
+  local next_line = self:read_line()
+  local content = self:process_verbatim(next_line)
+  self.verbatim = false
+  return {name = "latex_block", environment =environment, value = content}
+end
+
+function wikireader:placeholder(tag, text)
+  return {name = "placeholder", tag = tag, value = text}
+end
+
+function wikireader:comment(text)
+  return {name = "comment", value = text}
+end
+
+function wikireader:hline(rest)
+  return {name = "hline"}
+end
+
+function wikireader:indented_line(indent, text)
+  local indent = string.len(indent)
+  return {name = "indented_line", indent = indent, value = text}
+end
+
+function wikireader:blank_line()
+  return {name = "blank_line"}
 end
 
 function wikireader:parse(iterator)

@@ -16,6 +16,12 @@ describe("basic inline parsing", function()
     assert.same(#matches, 2)
     assert.same(matches[2].name, "inline_code")
   end)
+  it("should support inline latex", function()
+    local matches = reader:parse_inlines("hello $a = b^2$ world")
+    assert.same(#matches, 3)
+    assert.same(matches[2].name, "latex_inline")
+    assert.same(matches[2].value, "a = b^2")
+  end)
   it("should correctly support underscores and other characters in the code", function() 
     local matches = reader:parse_inlines("hello `world *ble* and function_with_underscores()`")
     assert.same(#matches,2)
@@ -71,6 +77,8 @@ end)
 
 describe("Block parsing should work", function()
   local test = [[
+%title hello world
+%date 2017-12-21
 = hello world =
 
 - item
@@ -89,6 +97,21 @@ still paragraph
 term:: definition
 another term::
 :: longer definition
+
+{{$%align%
+a = b + c
+b = a - c
+}}$
+
+| table | header |
+|-------|--------|
+| cell 1| cell 2 |
+
+----
+%% This is a comment
+
+    blockquote
+    another line
 ]]
 
   it("should parse a string", function()
