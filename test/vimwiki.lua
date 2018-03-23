@@ -93,6 +93,9 @@ just a few
 
 paragraph
 still paragraph
+some *formatting*, like `verbatim`
+and ]] .. "[[wikilink|internal links]]" ..[[ 
+and https://example.com url links
 
 term:: definition
 another term::
