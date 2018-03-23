@@ -78,6 +78,16 @@ wikireader.new = function()
   -- wikireader.state = "line"
   t.block_patterns =  {}
   t:load_blocks()
+  t.document = {} -- the document AST will be saved here
+  -- list of elements which should be processed for inline text elements 
+  t.blocks_with_inlines = {
+    enumerate=true,
+    bulleted=true,
+    definition=true,
+    paragraph=true,
+    blockquote=true,
+    table_cell=true
+  }
   -- t.__index = t
   return t
 end
@@ -91,9 +101,9 @@ end
 
 function wikireader:load_blocks()
   self:add_block("header","([%s]*)(=+)%s*(.-)=+", wikireader.header)
-  self:add_block("enumerated_list", "^(%s*)([0-9a-z]+)[%.%)] (.+)", wikireader.enumerate)
+  self:add_block("enumerated_list", "^(%s*)([0-9a-z]+)[%.%)] (.+)", wikireader.enumerated)
   -- hash list is a special case of an enumerated list
-  self:add_block("hash_list", "^(%s*)(%#) (.+)", wikireader.enumerate)
+  self:add_block("hash_list", "^(%s*)(%#) (.+)", wikireader.enumerated)
   self:add_block("bullet_list", "^(%s*)([%-%*]) (.+)", wikireader.bulleted)
   self:add_block("verbatim", "^%s*{{{(.*)", wikireader.verbatim)
   self:add_block("definition_term", "^%s*(.+)::%s*(.*)", wikireader.definition_term)
@@ -331,6 +341,97 @@ function wikireader:parse(iterator)
     self:process_line(line)
     line = self:read_line()
   end
+  -- make ast from block lines
+  self:block_ast()
+end
+
+
+function wikireader:block_ast()
+  local blocks = self.blocks
+  local pos = 0
+  local function try_next_line()
+    return blocks[pos+1]
+  end
+  -- return next block type
+  local function try_next_type()
+    local nextone =  try_next_line() or {}
+    return nextone.name
+  end
+  local function get_line()
+    pos = pos + 1
+    return blocks[pos]
+  end
+
+  local function parse_list(block)
+    -- table for list items
+    local t = {}
+    local current_text = block.value or ""
+    local function get_indent(current) 
+      return string.len(current.bullet or current.counter) + current.indent
+    end
+    local function add_list_item()
+      table.insert(t, {name="list_item", children = self:parse_inlines(current_text)})
+      current_text = ""
+    end
+    local next_type = try_next_type()
+    local current_type = block.name
+    local current_indent = get_indent(block)
+    while next_type == "bulleted" or next_type == "enumerated"  or next_type == "indented_line"  do
+      next_type = try_next_type()
+      local next_obj = try_next_line()
+      if next_type == "indented_line" and next_obj.indent >= current_indent then
+        current_text = current_text .. " " .. next_obj.value
+      elseif next_type == current_type and block.indent == next_obj.indent then
+        add_list_item()
+        current_text = next_obj.value or ""
+      elseif (next_type == "bulleted" or next_type == "enumerated" ) and next_obj.indent > block.indent then
+        local next_obj = get_line()
+        next_obj.chilren = parse_list(next_obj)
+        table.insert(t, next_obj)
+      else 
+        break
+      end
+      pos = pos + 1
+    end
+    if current_text and  current_text ~= "" then
+      add_list_item()
+    end
+    return t
+
+  end
+  -- just top level keys are enough
+  local function copy_table(tbl)
+    local t = {}
+    for k,v in pairs(tbl) do t[k]=v end
+    return t
+  end
+  local function parse_blocks()
+    local line = get_line()
+    if not line then return nil, "end of document" end
+    -- default block type
+    local block = copy_table(line)
+    block.children = {}
+    local line_type = line.name
+    if line_type == "bulleted"  or line_type == "enumerate" then
+      block.children = parse_list(block)
+    elseif line_type == "blank_line" then
+      -- skip blank lines
+      return parse_blocks()
+    elseif self.blocks_with_inlines[line_type] then
+      block.children = self:parse_inlines(line.value)
+    else
+      block.children = {name="text", value = block.value}
+      -- block.value = nil
+    end
+    return block
+  end
+  local document = {name="root", children = {}}
+  local  block = parse_blocks()
+  while block do
+    table.insert(document.children, block)
+    block = parse_blocks()
+  end
+  self.document = document
 end
 
 local m = {}
