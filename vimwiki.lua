@@ -223,6 +223,7 @@ function wikireader:process_line(line)
     if #match > 0 then
       matched = true
       blocks[#blocks+1] = block_pattern.fn(self, table.unpack(match))
+      break
     end
   end
   if not matched then
