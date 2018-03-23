@@ -79,11 +79,19 @@ describe("Block parsing should work", function()
   local test = [[
 %title hello world
 %date 2017-12-21
+:tag1:tag2:
 = hello world =
 
 - item
 - another item
   - sub item
+
+
+1. numbered list
+2. another item
+   1. sub numbered list
+      continuation
+   item 2 continuation   
 
 {{{
 verbatim block
@@ -116,12 +124,26 @@ b = a - c
     blockquote
     another line
 ]]
+local function print_ast(doc, indent)
+  local indent = indent or 0
+  local spaces = string.rep("  ", indent)
+  for k,v in ipairs(doc.children or {}) do
+    print(spaces .. v.name, v.value or "")
+    print_ast(v, indent + 1)
+  end
+end
 
   it("should parse a string", function()
     reader:parse_string(test)
     assert.truthy(#reader.blocks > 0)
+    print "****************************************"
     for _,v in ipairs(reader.blocks) do
-      print(v.name, v.value)
+      print(v.name, v.value,v.indent)
     end
+    print "****************************************"
+    -- for _, x in ipairs(reader.document.children) do
+      -- print(x.name, #x.children)
+    -- end
+    print_ast(reader.document)
   end)
 end)
