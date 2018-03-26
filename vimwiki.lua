@@ -376,7 +376,6 @@ function wikireader:block_ast()
     local next_type = try_next_type()
     local current_type = block.name
     local current_indent = get_indent(block)
-    print("list", current_type, current_indent, next_type)
     while next_type == "bulleted" or next_type == "enumerate"  or next_type == "indented_line"  do
       local next_obj = try_next_line()
       
