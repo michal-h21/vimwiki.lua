@@ -376,28 +376,30 @@ function wikireader:block_ast()
     local next_type = try_next_type()
     local current_type = block.name
     local current_indent = get_indent(block)
-    while next_type == "bulleted" or next_type == "enumerated"  or next_type == "indented_line"  do
-      next_type = try_next_type()
+    print("list", current_type, current_indent, next_type)
+    while next_type == "bulleted" or next_type == "enumerate"  or next_type == "indented_line"  do
       local next_obj = try_next_line()
-      if next_type == "indented_line" and next_obj.indent >= current_indent then
+      
+      if next_type == "indented_line" and (next_obj.indent or 0) >= current_indent then
         current_text = current_text .. " " .. next_obj.value
       elseif next_type == current_type and block.indent == next_obj.indent then
         add_list_item()
         current_text = next_obj.value or ""
-      elseif (next_type == "bulleted" or next_type == "enumerated" ) and next_obj.indent > block.indent then
+      elseif (next_type == "bulleted" or next_type == "enumerate" ) and next_obj.indent > block.indent then
         local next_obj = get_line()
-        next_obj.chilren = parse_list(next_obj)
+        add_list_item()
+        next_obj.children = parse_list(next_obj)
         table.insert(t, next_obj)
-      else 
+      else
         break
       end
+      next_type = try_next_type()
       pos = pos + 1
     end
     if current_text and  current_text ~= "" then
       add_list_item()
     end
     return t
-
   end
   -- just top level keys are enough
   local function copy_table(tbl)
