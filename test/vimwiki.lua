@@ -88,10 +88,11 @@ describe("Block parsing should work", function()
 
 
 1. numbered list
-2. another item
+2. another *item*
    1. sub numbered list
       continuation
-   item 2 continuation   
+   item 2 *continuation*   
+3. third item
 
 {{{
 verbatim block
@@ -124,6 +125,8 @@ b = a - c
     blockquote
     another line
 ]]
+
+
 local function print_ast(doc, indent)
   local indent = indent or 0
   local spaces = string.rep("  ", indent)
@@ -133,17 +136,17 @@ local function print_ast(doc, indent)
   end
 end
 
-  it("should parse a string", function()
-    reader:parse_string(test)
-    assert.truthy(#reader.blocks > 0)
-    print "****************************************"
-    for _,v in ipairs(reader.blocks) do
-      print(v.name, v.value,v.indent)
-    end
-    print "****************************************"
-    -- for _, x in ipairs(reader.document.children) do
-      -- print(x.name, #x.children)
-    -- end
-    print_ast(reader.document)
-  end)
+it("should parse a string", function()
+  reader:parse_string(test)
+  assert.truthy(#reader.blocks > 0)
+  print "****************************************"
+  for _,v in ipairs(reader.blocks) do
+    print(v.name, v.value,v.indent)
+  end
+  print "****************************************"
+  -- for _, x in ipairs(reader.document.children) do
+  -- print(x.name, #x.children)
+  -- end
+  print_ast(reader.document)
+end)
 end)
