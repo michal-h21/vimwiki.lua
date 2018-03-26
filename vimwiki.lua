@@ -392,29 +392,42 @@ function wikireader:block_ast()
       else
         break
       end
-      next_type = try_next_type()
       pos = pos + 1
+      next_type = try_next_type()
     end
     if current_text and  current_text ~= "" then
       add_list_item()
     end
     return t
   end
-  -- just top level keys are enough
-  local function copy_table(tbl)
+  local function parse_blockquote(block)
     local t = {}
-    for k,v in pairs(tbl) do t[k]=v end
+    local function add_line(s)
+      local line = s:match("^%s*(.+)")
+      table.insert(t, {name="line", children=self:parse_inlines(s)})
+    end
+    add_line(block.value)
+    local next_type = try_next_type()
+    local next_obj = try_next_line()
+    while next_type == "indented_line" and next_obj.indent==4 do
+      add_line(next_obj.value)
+      pos = pos+1
+      next_obj, next_type =try_next_line(), try_next_type()
+    end
     return t
   end
   local function parse_blocks()
     local line = get_line()
     if not line then return nil, "end of document" end
     -- default block type
-    local block = copy_table(line)
+    local block = line--copy_table(line)
     block.children = {}
     local line_type = line.name
     if line_type == "bulleted"  or line_type == "enumerate" then
       block.children = parse_list(block)
+    elseif line_type == "indented_line" and line.indent == 4 then
+      block.name = "blockquote"
+      block.children = parse_blockquote(block)
     elseif line_type == "blank_line" then
       -- skip blank lines
       return parse_blocks()
