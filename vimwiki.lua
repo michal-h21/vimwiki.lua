@@ -366,20 +366,24 @@ function wikireader:block_ast()
     -- table for list items
     local t = {}
     local current_text = block.value or ""
+    local next_item_type ="list_item"
     local function get_indent(current) 
       return string.len(current.bullet or current.counter) + current.indent
     end
     local function add_list_item()
-      table.insert(t, {name="list_item", children = self:parse_inlines(current_text)})
+      table.insert(t, {name=next_item_type, children = self:parse_inlines(current_text)})
       current_text = ""
+      next_item_type = "list_item"
     end
     local next_type = try_next_type()
     local current_type = block.name
     local current_indent = get_indent(block)
     while next_type == "bulleted" or next_type == "enumerate"  or next_type == "indented_line"  do
       local next_obj = try_next_line()
-      
       if next_type == "indented_line" and (next_obj.indent or 0) >= current_indent then
+        if current_text=="" then
+          next_item_type= "list_item_continued"
+        end
         current_text = current_text .. " " .. next_obj.value
       elseif next_type == current_type and block.indent == next_obj.indent then
         add_list_item()
@@ -389,6 +393,7 @@ function wikireader:block_ast()
         add_list_item()
         next_obj.children = parse_list(next_obj)
         table.insert(t, next_obj)
+        pos = pos - 1
       else
         break
       end
