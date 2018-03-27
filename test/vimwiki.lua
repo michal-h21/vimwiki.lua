@@ -91,7 +91,7 @@ describe("Block parsing should work", function()
 2. another *item*
    1. sub numbered list
       continuation
-   item 2 *continuation*   
+   item 2 *continuation*
 3. third item
 
 {{{
