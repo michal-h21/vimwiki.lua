@@ -101,7 +101,7 @@ end
 
 function wikireader:load_blocks()
   self:add_block("header","([%s]*)(=+)%s*(.-)=+", wikireader.header)
-  self:add_block("enumerated_list", "^(%s*)([0-9a-z]+)[%.%)] (.+)", wikireader.enumerated)
+  self:add_block("enumerated_list", "^(%s*)([0-9a-z]+[%.%)]%s+)(.+)", wikireader.enumerated)
   -- hash list is a special case of an enumerated list
   self:add_block("hash_list", "^(%s*)(%#) (.+)", wikireader.enumerated)
   self:add_block("bullet_list", "^(%s*)([%-%*]) (.+)", wikireader.bulleted)
