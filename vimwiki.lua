@@ -450,6 +450,21 @@ function wikireader:block_ast()
     return t
   end
 
+  local function parse_paragraph(block)
+    block.name = "paragraph"
+    local lines = {block.value}
+    local next_type = try_next_type()
+    while next_type == "line" or next_type=="indented_line" do
+      local next_obj = get_line()
+      table.insert(lines, next_obj.value)
+      next_type = try_next_type()
+    end
+    -- join paragraph lines, we are not interested in the original line formatting
+    local s = table.concat(lines, " ")
+    return self:parse_inlines(s)
+  end
+
+
   local function parse_blocks()
     local line = get_line()
     if not line then return nil, "end of document" end
@@ -467,6 +482,8 @@ function wikireader:block_ast()
       return parse_blocks()
     elseif line_type == "table_row" then
       block.children = parse_table(block)
+    elseif line_type == "line" then
+      block.children = parse_paragraph(block)
     elseif self.blocks_with_inlines[line_type] then
       block.children = self:parse_inlines(line.value)
     else
