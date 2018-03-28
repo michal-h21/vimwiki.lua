@@ -64,6 +64,13 @@ add_inline("link", "%[%[(.-)%]%]", function(text)
   return {name = name, value = link, title = title, thumbnail = thumbnail}
 end)
 
+-- parse raw urls in text. it parses everything after scheme until first space, 
+-- including any interpunction at the end. vimwiki highlights them as well, so 
+-- it is probably not a problem
+for scheme, name in pairs(url_schemes) do
+  add_inline(scheme, "(" ..scheme..":[^ ]+)", function(url) return {name = "raw_url", value = url} end)
+end
+
 add_inline("transclusion", "{{(.-)}}", function(text)
   local link, title, style = text:match("([^|]+)|?([^|]*)|?(.*)")
   return {name = "transclusion", value = link, title = title,style = style}
