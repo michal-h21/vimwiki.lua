@@ -421,6 +421,35 @@ function wikireader:block_ast()
     end
     return t
   end
+
+  local function parse_table(block)
+    block.name = "table"
+    local t = {}
+    local function add_row(x,typ)
+      local typ = typ or "table_row"
+      local new = {}
+      local cells = {}
+      -- copy all fields of the current object first, update necessary fields later
+      for k,v in pairs(x) do new[k] = v end
+
+      for k,v in ipairs(x.cells or {}) do cells[k] =  {name = "cell", children = self:parse_inlines(v)} end
+      new.name = typ
+      new.children = cells
+      table.insert(t, new)
+    end
+    local next_type = try_next_type()
+
+    if next_type == "table_hline" then
+      add_row(block, "table_header")
+    end
+    while next_type == "table_row" or next_type == "table_hline" do
+      local next_obj = get_line()
+      add_row(next_obj, next_type)
+      next_type = try_next_type()
+    end
+    return t
+  end
+
   local function parse_blocks()
     local line = get_line()
     if not line then return nil, "end of document" end
@@ -436,6 +465,8 @@ function wikireader:block_ast()
     elseif line_type == "blank_line" then
       -- skip blank lines
       return parse_blocks()
+    elseif line_type == "table_row" then
+      block.children = parse_table(block)
     elseif self.blocks_with_inlines[line_type] then
       block.children = self:parse_inlines(line.value)
     else
