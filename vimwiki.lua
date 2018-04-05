@@ -471,6 +471,25 @@ function wikireader:block_ast()
     return self:parse_inlines(s)
   end
 
+  local function parse_definition(block)
+    local items = {}
+    local function add_definition(def)
+      table.insert(items, {name="definition", children = self:parse_inlines(def.value)})
+    end
+    if block.value~="" then
+      add_definition(block)
+    end
+
+    local next_type = try_next_type()
+    while next_type == "definition" do
+      local next_obj = get_line()
+      -- table.insert(items, self:parse_inlines(next_obj.value))
+      add_definition(next_obj)
+      next_type = try_next_type()
+    end
+    return items
+  end
+
 
   local function parse_blocks()
     local line = get_line()
@@ -491,6 +510,8 @@ function wikireader:block_ast()
       block.children = parse_table(block)
     elseif line_type == "line" then
       block.children = parse_paragraph(block)
+    elseif line_type == "definition_term" then
+      block.children = parse_definition(block)
     elseif self.blocks_with_inlines[line_type] then
       block.children = self:parse_inlines(line.value)
     else
